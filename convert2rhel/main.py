@@ -164,6 +164,8 @@ def pre_ponr_conversion():
     loggerinst.task("Convert: List third-party packages")
     pkghandler.list_third_party_pkgs()
     if not toolopts.tool_opts.disable_submgr:
+        loggerinst.task("Convert: Subscription Manager - Download packages")
+        subscription.download_subscription_manager_packages()
         loggerinst.task("Convert: Subscription Manager - Install")
         subscription.install_subscription_manager()
         loggerinst.task("Convert: Subscription Manager - Subscribe system")
