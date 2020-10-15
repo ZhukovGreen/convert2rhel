@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from collections import namedtuple
 import glob
 import unittest
 
@@ -26,7 +27,7 @@ from convert2rhel.toolopts import tool_opts
 
 class TestRedHatRelease(unittest.TestCase):
 
-    supported_rhel_versions = ["6", "7", "8"]
+    supported_rhel_versions = [6, 7, 8]
 
     class DumbMocked(unit_tests.MockFunction):
         def __call__(self, *args, **kwargs):
@@ -53,8 +54,8 @@ class TestRedHatRelease(unittest.TestCase):
     @unit_tests.mock(glob, "glob", GlobMocked())
     @unit_tests.mock(utils, "run_subprocess", RunSubprocessMocked())
     def test_install_release_pkg(self):
-        for version in self.supported_rhel_versions:
-            system_info.version = version
+        for major in self.supported_rhel_versions:
+            system_info.version = namedtuple("Version", ["major", "minor"])(major, 0)
 
             redhatrelease.install_release_pkg()
 
@@ -82,8 +83,8 @@ class TestRedHatRelease(unittest.TestCase):
         yum_conf = redhatrelease.YumConf()
         yum_conf._yum_conf_content = yum_conf_content
 
-        for version in self.supported_rhel_versions:
-            system_info.version = version
+        for major in self.supported_rhel_versions:
+            system_info.version = namedtuple("Version", ["major", "minor"])(major, 0)
 
             # Call just this function to avoid unmockable built-in write func
             yum_conf._insert_distroverpkg_tag()

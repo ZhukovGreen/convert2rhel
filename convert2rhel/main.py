@@ -149,6 +149,16 @@ def pre_ponr_conversion():
     # check if user pass some repo to both disablerepo and enablerepo options
     pkghandler.has_duplicate_repos_across_disablerepo_enablerepo_options()
 
+    # package analysis
+    loggerinst.task("Convert: List third-party packages")
+    pkghandler.list_third_party_pkgs()
+
+    if not toolopts.tool_opts.disable_submgr:
+        loggerinst.task("Convert: Subscription Manager - Download packages")
+        subscription.download_rhsm_pkgs()
+        loggerinst.task("Convert: Subscription Manager - Install")
+        subscription.install_subscription_manager()
+
     # remove excluded packages
     loggerinst.task("Convert: Remove excluded packages")
     pkghandler.remove_excluded_pkgs()
@@ -160,14 +170,7 @@ def pre_ponr_conversion():
     loggerinst.task("Convert: Patch yum configuration file")
     redhatrelease.YumConf().patch()
 
-    # package analysis
-    loggerinst.task("Convert: List third-party packages")
-    pkghandler.list_third_party_pkgs()
     if not toolopts.tool_opts.disable_submgr:
-        loggerinst.task("Convert: Subscription Manager - Download packages")
-        subscription.download_subscription_manager_packages()
-        loggerinst.task("Convert: Subscription Manager - Install")
-        subscription.install_subscription_manager()
         loggerinst.task("Convert: Subscription Manager - Subscribe system")
         subscription.subscribe_system()
         loggerinst.task("Convert: Get RHEL repository IDs")

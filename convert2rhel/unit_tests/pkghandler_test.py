@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from collections import namedtuple
 import glob
 import os
 import re
@@ -764,16 +765,16 @@ class TestPkgHandler(unit_tests.ExtendedTestCase):
             self.called = 0
             self.pkg = None
             self.dest = None
-            self.disablerepo = None
-            self.enablerepo = None
+            self.enable_repos = []
+            self.disable_repos = []
             self.to_return = "/path/to.rpm"
 
-        def __call__(self, pkg, dest, disablerepo, enablerepo):
+        def __call__(self, pkg, dest, enable_repos, disable_repos):
             self.called += 1
             self.pkg = pkg
             self.dest = dest
-            self.disablerepo = disablerepo
-            self.enablerepo = enablerepo
+            self.enable_repos = enable_repos
+            self.disable_repos = disable_repos
             return self.to_return
 
     @unit_tests.mock(utils, "ask_to_continue", DumbCallableObject())
@@ -839,19 +840,19 @@ class TestPkgHandler(unit_tests.ExtendedTestCase):
                                                           "kernel-firmware",
                                                           "kernel-uek-firmware"])
 
-    @unit_tests.mock(system_info, "version", "7")
+    @unit_tests.mock(system_info, "version", namedtuple("Version", ["major", "minor"])(7, 0))
     @unit_tests.mock(system_info, "arch", "x86_64")
     @unit_tests.mock(logger.CustomLogger, "info", LogMocked())
     def test_fix_invalid_grub2_entries_not_applicable(self):
         pkghandler.fix_invalid_grub2_entries()
         self.assertFalse(logger.CustomLogger.info.called)
 
-        system_info.version = "8"
+        system_info.version = namedtuple("Version", ["major", "minor"])(8, 0)
         system_info.arch = "s390x"
         pkghandler.fix_invalid_grub2_entries()
         self.assertFalse(logger.CustomLogger.info.called)
 
-    @unit_tests.mock(system_info, "version", "8")
+    @unit_tests.mock(system_info, "version", namedtuple("Version", ["major", "minor"])(8, 0))
     @unit_tests.mock(system_info, "arch", "x86_64")
     @unit_tests.mock(utils, "get_file_content", lambda x: "1b11755afe1341d7a86383ca4944c324\n")
     @unit_tests.mock(glob, "glob", lambda x: [

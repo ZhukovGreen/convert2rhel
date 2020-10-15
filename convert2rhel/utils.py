@@ -48,6 +48,7 @@ class Color(object):
 DATA_DIR = "/usr/share/convert2rhel/"
 # Directory for temporary data to be stored during runtime
 TMP_DIR = "/var/lib/convert2rhel/"
+BACKUP_DIR = os.path.join(TMP_DIR, "backup")
 
 
 def format_msg_with_datetime(msg, level):
@@ -399,30 +400,44 @@ def install_pkgs(pkgs_to_install, replace=False, critical=True):
     return True
 
 
-def download_pkg(pkg, dest=TMP_DIR, disablerepo=None, enablerepo=None):
-    """Download an rpm using yumdownloader and return its filepath. If not successful, return None."""
+def download_pkgs(pkgs, dest=TMP_DIR, reposdir=None):
+    """A wrapper for the download_pkg function allowing to download multiple packages."""
+    pkg_paths = []
+    for pkg in pkgs:
+        pkg_paths.append(download_pkg(pkg, dest, reposdir))
+    return pkg_paths
+    
+
+def download_pkg(pkg, dest=TMP_DIR, reposdir=None, enable_repos=None, disable_repos=None):
+    """Download an rpm using yumdownloader and return its filepath. If not successful, return None.
+
+    The enable_repos and disable_repos function parameters accept lists. If used, the repos are passed to the
+    --enablerepo and --disablerepo yumdownloader options, respectively.
+
+    Pass just a single rpm name as a string to the pkg parameter.
+    """
     loggerinst = logging.getLogger(__name__)
     loggerinst.debug("Downloading the %s package." % pkg)
 
     # On RHEL 7, it's necessary to invoke yumdownloader with -v, otherwise there's no output to stdout.
-    cmd = "yumdownloader -v"
-    if disablerepo is None:
-        disablerepo = []
-    if enablerepo is None:
-        enablerepo = []
+    cmd = 'yumdownloader -v --destdir="%s"' % dest
+    if reposdir:
+        cmd += ' --setopt=reposdir="%s"' % reposdir
 
-    for repo in disablerepo:
-        cmd += " --disablerepo=%s" % repo
+    if isinstance(disable_repos, list):
+        for repo in disable_repos:
+            cmd += ' --disablerepo="%s"' % repo
 
-    for repo in enablerepo:
-        cmd += " --enablerepo=%s" % repo
+    if isinstance(enable_repos, list):
+        for repo in enable_repos:
+            cmd += ' --enablerepo="%s"' % repo
 
-    cmd += ' --destdir="%s"' % dest
     cmd += " %s" % pkg
 
-    output, ret_code = run_cmd_in_pty(cmd)
+    output, ret_code = run_cmd_in_pty(cmd, print_output=False)
     if ret_code != 0:
-        loggerinst.warning("Couldn't download the %s package using yumdownloader:\n%s." % (pkg, output))
+        loggerinst.warning("Couldn't download the %s package using yumdownloader.\n"
+                           "Output from the yumdownloader call:\n%s" % (pkg, output))
         return None
 
     path = get_rpm_path_from_yumdownloader_output(cmd, output, dest)
@@ -475,8 +490,8 @@ class RestorableFile(object):
         loggerinst.info("Backing up %s" % self.filepath)
         if os.path.isfile(self.filepath):
             try:
-                loggerinst.info("Copying %s to %s" % (self.filepath, TMP_DIR))
-                shutil.copy2(self.filepath, TMP_DIR)
+                loggerinst.info("Copying %s to %s" % (self.filepath, BACKUP_DIR))
+                shutil.copy2(self.filepath, BACKUP_DIR)
             except IOError as err:
                 loggerinst.critical("I/O error(%s): %s" % (err.errno,
                                                            err.strerror))
@@ -486,7 +501,7 @@ class RestorableFile(object):
     def restore(self):
         """ Restore a previously backed up file """
         loggerinst = logging.getLogger(__name__)
-        backup_filepath = os.path.join(TMP_DIR,
+        backup_filepath = os.path.join(BACKUP_DIR,
                                        os.path.basename(self.filepath))
         loggerinst.task("Rollback: Restoring %s from backup" % self.filepath)
 
@@ -526,30 +541,10 @@ class RestorablePackage(object):
         """ Save version of RPM package """
         loggerinst = logging.getLogger(__name__)
         loggerinst.info("Backing up %s" % self.name)
-        if os.path.isdir(TMP_DIR):
-            self.path = download_pkg(self.name)
+        if os.path.isdir(BACKUP_DIR):
+            self.path = download_pkg(self.name, dest=BACKUP_DIR)
         else:
             loggerinst.warning("Can't access %s" % TMP_DIR)
-
-
-def parse_version_number(version_str):
-    """
-    Parses the version number from the version string in /etc/system-release.
-    Returns a dict with major, minor, and release keys where each key is a number or None
-    """
-    if not isinstance(version_str, str):
-        raise TypeError("Expected version_str to be a string")
-
-    version_number_regex = re.search(r"(?:^|\s)(\d+)(?:\.(\d+))?(?:\.(\d+))?", version_str)
-
-    if version_number_regex is None:
-        raise Exception("Could not find Operating System version number in \"" + version_str + "\"")
-
-    version_dict = {'major': int(version_number_regex.group(1)) if version_number_regex.group(1) else None,
-                    'minor': int(version_number_regex.group(2)) if version_number_regex.group(2) else None,
-                    'release': int(version_number_regex.group(3)) if version_number_regex.group(3) else None}
-
-    return version_dict
 
 
 changed_pkgs_control = ChangedRPMPackagesController()  # pylint: disable=C0103

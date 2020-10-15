@@ -173,12 +173,15 @@ class TestUtils(unittest.TestCase):
     @unit_tests.mock(utils, "get_rpm_path_from_yumdownloader_output", lambda x, y, z: "/path/test.rpm")
     def test_download_pkg_success_with_all_params(self):
         dest = "/test dir/"
-        disablerepo = "x"
-        enablerepo = "y"
-        path = utils.download_pkg("kernel", dest=dest, disablerepo=disablerepo, enablerepo=enablerepo)
+        reposdir = "/my repofiles/"
+        enable_repos = ["repo1", "repo2"]
+        disable_repos = ["*"]
+        
+        path = utils.download_pkg(
+            "kernel", dest=dest, reposdir=reposdir, enable_repos=enable_repos, disable_repos=disable_repos)
 
-        self.assertEqual('yumdownloader -v --disablerepo=%s --enablerepo=%s --destdir="%s" kernel'
-                         % (disablerepo, enablerepo, dest),
+        self.assertEqual('yumdownloader -v --destdir="%s" --setopt=reposdir="%s" --disablerepo="*" --enablerepo="repo1"'
+                         ' --enablerepo="repo2" kernel' % (dest, reposdir),
                          utils.run_cmd_in_pty.cmd)
         self.assertTrue(path)  # path is not None (which is the case of unsuccessful download)
 
@@ -209,15 +212,6 @@ class TestUtils(unittest.TestCase):
             path = utils.get_rpm_path_from_yumdownloader_output("cmd not important", output, utils.TMP_DIR)
 
             self.assertEqual(path, os.path.join(utils.TMP_DIR, self.DOWNLOADED_RPM_FILENAME))
-
-    def test_parse_version_number(self):
-        self.assertRaises(TypeError, utils.parse_version_number, 10)
-        self.assertRaises(Exception, utils.parse_version_number, "empty version string")
-        self.assertEqual(utils.parse_version_number('12'), {'major': 12, 'minor': None, 'release': None})
-        self.assertEqual(utils.parse_version_number('12.34'), {'major': 12, 'minor': 34, 'release': None})
-        self.assertEqual(utils.parse_version_number('12.34.56'), {'major': 12, 'minor': 34, 'release': 56})
-        self.assertEqual(utils.parse_version_number('test 1.2.3'), {'major': 1, 'minor': 2, 'release': 3})
-        self.assertEqual(utils.parse_version_number('test 1.2.3 test'), {'major': 1, 'minor': 2, 'release': 3})
 
     def test_is_rpm_based_os(self):
         assert is_rpm_based_os() in (True, False)
