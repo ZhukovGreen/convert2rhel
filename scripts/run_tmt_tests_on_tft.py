@@ -28,9 +28,8 @@ REPO_ROOT = Path(__file__).parents[1]
 VM2COMPOSES = {
     "c2r_centos7_template": "CentOS-7",
     "c2r_centos8_template": "CentOS-8",
-    # TODO is not yet enabled in TFT https://gitlab.com/testing-farm/general/-/issues/32
-    # "c2r_oracle7_template": "OracleLinux-7",
-    # "c2r_oracle8_template": "OracleLinux-8",
+    "c2r_oracle7_template": "Oracle-Linux-7.9",
+    "c2r_oracle8_template": "Oracle-Linux-8.3",
 }
 
 
