@@ -78,10 +78,11 @@ class TFTHelper:
         logger.debug("Verifying available composes...")
         async with self.web_client.session.get(url=self._api_url / "composes") as composes:
             composes = await composes.json()
-            assert set(compose["name"] for compose in composes["composes"]).issuperset(set(VM2COMPOSES.values())), (
-                f"Unknown composes specified in VM2COMPOSES. "
-                f"Check for available composes at {self._api_url / 'composes'}."
-            )
+            # TODO https://gitlab.com/testing-farm/general/-/issues/32
+            # assert set(compose["name"] for compose in composes["composes"]).issuperset(set(VM2COMPOSES.values())), (
+            #     f"Unknown composes specified in VM2COMPOSES. "
+            #     f"Check for available composes at {self._api_url / 'composes'}."
+            # )
         logger.debug("PASSED")
         logger.info("TFT api health check PASSED")
 
