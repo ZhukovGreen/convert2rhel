@@ -32,6 +32,9 @@ VM2COMPOSES = {
     "c2r_oracle8_template": "Oracle-Linux-8.3",
 }
 
+# interval at which the utility checks the status of each test in seconds
+WATCH_TEST_INTERVAL = 10
+
 
 def get_compose_from_provision_data(data: List[dict]) -> str:
     """Get compose name from the provisioning metadata of the libvirt provisoner.
@@ -52,7 +55,7 @@ def get_compose_from_provision_data(data: List[dict]) -> str:
 
 
 class TFTHelper:
-    """General class to intereact with the TFT."""
+    """General class to interact with the TFT."""
 
     def __init__(
         self,
@@ -152,6 +155,13 @@ class TFTHelper:
                             "compose": get_compose_from_provision_data(plan.provision.data),
                         },
                         "variables": plan.environment,
+                        # "tmt": {
+                        #     "context": {
+                        #         "distro": "centos-7",
+                        #         "arch": "x86_64",
+                        #         "trigger": "code",
+                        #     }
+                        # }
                     },
                 ],
             },
@@ -186,7 +196,7 @@ class TFTHelper:
                         f"http://artifacts.dev.testing-farm.io/{test_id}/pipeline.log\n"
                     )
                     return
-            await asyncio.sleep(3)
+            await asyncio.sleep(WATCH_TEST_INTERVAL)
 
 
 class WebClient:
